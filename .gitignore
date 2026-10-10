@@ -1,1 +1,4 @@
 *.o
+main/pt_note_to_pt_load_infector
+main/.gdb_history
+main/test.txt
