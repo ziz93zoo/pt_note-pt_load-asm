@@ -212,6 +212,10 @@ parse_port_done:
     mov [file_descriptor], rax
 
 
+    ; Verification taille fichier
+    cmp rax, 0
+    jle error
+
     ; Lecture du fichier
     mov rax, 0          
     mov rdi, [file_descriptor]
