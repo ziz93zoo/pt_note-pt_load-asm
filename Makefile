@@ -2,7 +2,7 @@ NASM = nasm
 LD = ld
 NFLAGS = -f elf64
 
-all: infector labos
+all: infector labos safe
 
 infector:
 	$(NASM) $(NFLAGS) main/pt_note_to_pt_load_infector.s -o main/pt_note_to_pt_load_infector.o
@@ -13,6 +13,9 @@ labos:
 	$(LD) labos/01_hello.o -o labos/01_hello
 	$(NASM) $(NFLAGS) labos/03_bytes.s -o labos/03_bytes.o
 	$(LD) labos/03_bytes.o -o labos/03_bytes
+
+safe:
+	gcc saine-code/safe_code.c -o saine-code/safe_code
 
 clean:
 	rm -f main/*.o labos/*.o saine-code/safe_code
