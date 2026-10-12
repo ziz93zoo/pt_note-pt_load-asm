@@ -12,8 +12,23 @@ Fonctionne sur les ELF compilés avec `-no-pie`.
 
 - **Linux x86_64** : `nasm`, `ld`, `gcc`
 - **Mac (Apple Silicon)** : Docker Desktop installé et lancé
+- **Windows** : WSL2 ou Docker Desktop
 
-## Compilation sur Mac (via Docker)
+## Windows
+
+**Option 1 — WSL2 (recommandé)** :
+```powershell
+wsl --install
+```
+Redémarrer, ouvrir Ubuntu depuis le menu démarrer, puis installer les dépendances :
+```bash
+sudo apt update && sudo apt install -y nasm gcc make
+```
+Ensuite suivre les instructions Linux normalement.
+
+**Option 2 — Docker Desktop** : installer [Docker Desktop](https://www.docker.com/products/docker-desktop/), puis suivre la section Mac ci-dessous.
+
+## Compilation sur Mac / Windows Docker (via Docker)
 
 ```bash
 # Build de l'image (une seule fois)
