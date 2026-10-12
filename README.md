@@ -46,8 +46,8 @@ make
 
 Ou manuellement :
 ```bash
-nasm -f elf64 -o main/pt_note_to_pt_load_infector.o main/pt_note_to_pt_load_infector.s
-ld -o main/pt_note_to_pt_load_infector main/pt_note_to_pt_load_infector.o
+nasm -f elf64 -o main/infector.o main/infector.s
+ld -o main/infector.o -o main/infector
 gcc -no-pie saine-code/safe_code.c -o saine-code/safe_code
 ```
 
@@ -55,7 +55,7 @@ gcc -no-pie saine-code/safe_code.c -o saine-code/safe_code
 
 Lancer l'infecteur en lui passant le binaire cible :
 ```bash
-./main/pt_note_to_pt_load_infector saine-code/safe_code
+./main/infector saine-code/safe_code
 ```
 
 L'infecteur demande :

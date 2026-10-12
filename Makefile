@@ -5,8 +5,8 @@ NFLAGS = -f elf64
 all: infector labos safe
 
 infector:
-	$(NASM) $(NFLAGS) main/pt_note_to_pt_load_infector.s -o main/pt_note_to_pt_load_infector.o
-	$(LD) main/pt_note_to_pt_load_infector.o -o main/pt_note_to_pt_load_infector
+	$(NASM) $(NFLAGS) main/infector.s -o main/infector.o
+	$(LD) main/infector.o -o main/infector
 
 labos:
 	$(NASM) $(NFLAGS) labos/01_hello.s -o labos/01_hello.o
@@ -19,7 +19,7 @@ safe:
 
 clean:
 	rm -f main/*.o labos/*.o saine-code/safe_code
-	rm -f main/pt_note_to_pt_load_infector
+	rm -f main/infector
 	rm -f labos/01_hello labos/03_bytes
 
 .PHONY: all infector labos clean

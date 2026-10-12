@@ -1,5 +1,5 @@
 *.o
-main/pt_note_to_pt_load_infector
+main/infector
 main/.gdb_history
 main/test.txt
 saine-code/safe_code
